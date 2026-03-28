@@ -42,19 +42,29 @@ export default function App() {
     return localStorage.getItem('diego_meta_auth') === 'true';
   });
   const [username, setUsername] = useState(() => {
-    return localStorage.getItem('diego_meta_username') || '';
+    return localStorage.getItem('diego_meta_username') || (localStorage.getItem('diego_meta_auth') === 'true' ? 'dgparga' : '');
   });
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const saved = localStorage.getItem('diego_meta_theme');
+    return saved !== null ? saved === 'dark' : true;
+  });
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const displayName = username.toLowerCase() === 'dgparga' ? 'Diego Parga' : (username || 'Usuario');
 
   // --- Efecto para Modo Oscuro Global ---
   useEffect(() => {
+    const root = document.documentElement;
     if (isDarkMode) {
-      document.documentElement.classList.add('dark');
+      root.classList.add('dark');
+      document.body.style.backgroundColor = '#0B1121';
+      localStorage.setItem('diego_meta_theme', 'dark');
     } else {
-      document.documentElement.classList.remove('dark');
+      root.classList.remove('dark');
+      document.body.style.backgroundColor = '#f8fafc';
+      localStorage.setItem('diego_meta_theme', 'light');
     }
   }, [isDarkMode]);
 
@@ -69,10 +79,10 @@ export default function App() {
   // --- Handlers de Login ---
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (username === 'dgparga' && password === 'dgparga95') {
+    if (username.toLowerCase() === 'dgparga' && password === 'dgparga95') {
       setIsAuthenticated(true);
       localStorage.setItem('diego_meta_auth', 'true');
-      localStorage.setItem('diego_meta_username', username);
+      localStorage.setItem('diego_meta_username', 'dgparga');
       setLoginError(false);
     } else {
       setLoginError(true);
@@ -224,6 +234,7 @@ export default function App() {
               <button
                 onClick={() => setIsDarkMode(!isDarkMode)}
                 className="p-2.5 rounded-full bg-white/50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 transition-all shadow-sm"
+                title={isDarkMode ? 'Cambiar a Modo Blanco' : 'Cambiar a Modo Oscuro'}
               >
                 {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               </button>
@@ -337,10 +348,10 @@ export default function App() {
                   className="flex items-center gap-2 sm:gap-3 p-1.5 sm:p-2 pr-3 sm:pr-4 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                 >
                   <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-inner">
-                    {username ? username.charAt(0).toUpperCase() : 'U'}
+                    {displayName.charAt(0).toUpperCase()}
                   </div>
                   <span className="text-sm font-bold text-slate-700 dark:text-slate-200 hidden sm:block">
-                    {username || 'Usuario'}
+                    {displayName}
                   </span>
                   <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
@@ -361,7 +372,7 @@ export default function App() {
                       >
                         <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700 sm:hidden">
                           <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-0.5">Conectado como</p>
-                          <p className="text-sm font-bold text-slate-800 dark:text-white truncate">{username || 'Usuario'}</p>
+                          <p className="text-sm font-bold text-slate-800 dark:text-white truncate">{displayName}</p>
                         </div>
                         <div className="p-2 space-y-1">
                           <button 
@@ -376,7 +387,7 @@ export default function App() {
                             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
                           >
                             {isDarkMode ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-indigo-500" />}
-                            {isDarkMode ? 'Modo Claro' : 'Modo Oscuro'}
+                            {isDarkMode ? 'Modo Blanco' : 'Modo Oscuro'}
                           </button>
                           <div className="h-px bg-slate-100 dark:bg-slate-700 my-1"></div>
                           <button 
