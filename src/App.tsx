@@ -52,7 +52,7 @@ export default function App() {
   });
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const displayName = username.toLowerCase() === 'dgparga' ? 'Diego Parga' : (username || 'Usuario');
+  const displayName = 'Diego Graña Parga';
 
   // --- Efecto para Modo Oscuro Global ---
   useEffect(() => {
