@@ -72,9 +72,77 @@ export default function App() {
   const [campaigns, setCampaigns] = useState(INITIAL_CAMPAIGNS);
   const [targetBudget, setTargetBudget] = useState<number>(600);
   const [targetCoupons, setTargetCoupons] = useState<number>(150);
+  const [budgetError, setBudgetError] = useState<string | null>(null);
+  const [couponsError, setCouponsError] = useState<string | null>(null);
   const [recommendations, setRecommendations] = useState<Record<string, BudgetRecommendation>>({});
   const [isOptimizing, setIsOptimizing] = useState(false);
+  const [isMetaConnected, setIsMetaConnected] = useState(false);
+  const [isFetchingMeta, setIsFetchingMeta] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // --- Handlers de Validación ---
+  const handleBudgetChange = (val: number) => {
+    setTargetBudget(val);
+    if (val < 100 || val > 5000) {
+      setBudgetError('El presupuesto debe estar entre 100€ y 5000€');
+    } else {
+      setBudgetError(null);
+    }
+  };
+
+  const handleCouponsChange = (val: number) => {
+    setTargetCoupons(val);
+    if (val < 10 || val > 1000) {
+      setCouponsError('El objetivo debe estar entre 10 y 1000 cupones');
+    } else {
+      setCouponsError(null);
+    }
+  };
+
+  // --- Meta Ads Integration ---
+  const handleConnectMeta = async () => {
+    try {
+      const response = await fetch('/api/auth/meta/url');
+      if (!response.ok) throw new Error('Failed to get auth URL');
+      const { url } = await response.json();
+
+      const authWindow = window.open(url, 'meta_oauth', 'width=600,height=700');
+      if (!authWindow) {
+        alert('Por favor, permite las ventanas emergentes para conectar con Meta Ads.');
+      }
+    } catch (error) {
+      console.error('Meta OAuth error:', error);
+      alert('Error al conectar con Meta Ads. Verifica la configuración.');
+    }
+  };
+
+  const fetchMetaCampaigns = async () => {
+    setIsFetchingMeta(true);
+    try {
+      const response = await fetch('/api/meta/campaigns');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.campaigns && data.campaigns.length > 0) {
+          setCampaigns(data.campaigns);
+          setIsMetaConnected(true);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching Meta campaigns:', error);
+    } finally {
+      setIsFetchingMeta(false);
+    }
+  };
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'META_AUTH_SUCCESS') {
+        fetchMetaCampaigns();
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
 
   // --- Handlers de Login ---
   const handleLogin = (e: React.FormEvent) => {
@@ -132,6 +200,7 @@ export default function App() {
 
   // --- Lógica de Optimización Simulada ---
   const runOptimization = () => {
+    if (budgetError || couponsError) return;
     setIsOptimizing(true);
     
     setTimeout(() => {
@@ -219,7 +288,7 @@ export default function App() {
   if (!isAuthenticated) {
     return (
       <>
-        <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] dark:bg-[#0B1121] p-4 relative overflow-hidden transition-colors duration-500">
+        <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] dark:bg-[#0B1121] p-4 relative overflow-hidden transition-colors duration-75">
           {/* Elementos decorativos de fondo */}
           <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-blue-500/20 dark:bg-blue-500/10 blur-[120px] pointer-events-none" />
           <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-purple-500/20 dark:bg-purple-500/10 blur-[120px] pointer-events-none" />
@@ -310,7 +379,7 @@ export default function App() {
   // --- PANTALLA PRINCIPAL ---
   return (
     <>
-      <div className="min-h-screen bg-[#f8fafc] dark:bg-[#0B1121] text-slate-800 dark:text-slate-100 font-sans selection:bg-blue-100 dark:selection:bg-blue-900/50 selection:text-blue-900 dark:selection:text-blue-100 pb-20 transition-colors duration-500 relative">
+      <div className="min-h-screen bg-[#f8fafc] dark:bg-[#0B1121] text-slate-800 dark:text-slate-100 font-sans selection:bg-blue-100 dark:selection:bg-blue-900/50 selection:text-blue-900 dark:selection:text-blue-100 pb-20 transition-colors duration-75 relative">
         
         {/* Background Gradients */}
         <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
@@ -320,7 +389,7 @@ export default function App() {
 
         {/* Header Flotante */}
         <header className="sticky top-0 sm:top-6 z-30 sm:mx-4 lg:mx-auto max-w-6xl">
-          <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border-b sm:border border-white/50 dark:border-slate-800/60 shadow-md sm:shadow-xl shadow-slate-200/40 dark:shadow-none sm:rounded-3xl px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between transition-colors duration-300">
+          <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border-b sm:border border-white/50 dark:border-slate-800/60 shadow-md sm:shadow-xl shadow-slate-200/40 dark:shadow-none sm:rounded-3xl px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between transition-colors duration-75">
             <div className="flex items-center gap-3 sm:gap-4">
               <BrandLogo size="normal" />
               <div>
@@ -437,19 +506,22 @@ export default function App() {
                       max="5000"
                       step="50"
                       value={targetBudget}
-                      onChange={(e) => setTargetBudget(Number(e.target.value))}
+                      onChange={(e) => handleBudgetChange(Number(e.target.value))}
                       className="flex-1 accent-blue-600 h-2 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer"
                     />
                     <div className="relative w-28">
                       <input
                         type="number"
                         value={targetBudget}
-                        onChange={(e) => setTargetBudget(Number(e.target.value))}
-                        className="w-full pl-3 pr-8 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-mono font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-colors shadow-sm"
+                        onChange={(e) => handleBudgetChange(Number(e.target.value))}
+                        className={`w-full pl-3 pr-8 py-2.5 border ${budgetError ? 'border-red-500 focus:ring-red-500' : 'border-slate-200 dark:border-slate-700 focus:ring-blue-500'} rounded-xl bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-mono font-bold text-sm outline-none transition-colors shadow-sm`}
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">€</span>
                     </div>
                   </div>
+                  {budgetError && (
+                    <p className="text-red-500 text-[10px] font-bold mt-2 ml-1">{budgetError}</p>
+                  )}
                 </div>
                 
                 <div>
@@ -463,24 +535,27 @@ export default function App() {
                       max="1000"
                       step="10"
                       value={targetCoupons}
-                      onChange={(e) => setTargetCoupons(Number(e.target.value))}
+                      onChange={(e) => handleCouponsChange(Number(e.target.value))}
                       className="flex-1 accent-purple-600 h-2 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer"
                     />
                     <div className="relative w-28">
                       <input
                         type="number"
                         value={targetCoupons}
-                        onChange={(e) => setTargetCoupons(Number(e.target.value))}
-                        className="w-full px-3 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-mono font-bold text-sm focus:ring-2 focus:ring-purple-500 outline-none transition-colors shadow-sm"
+                        onChange={(e) => handleCouponsChange(Number(e.target.value))}
+                        className={`w-full px-3 py-2.5 border ${couponsError ? 'border-red-500 focus:ring-red-500' : 'border-slate-200 dark:border-slate-700 focus:ring-purple-500'} rounded-xl bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-mono font-bold text-sm outline-none transition-colors shadow-sm`}
                       />
                     </div>
                   </div>
+                  {couponsError && (
+                    <p className="text-red-500 text-[10px] font-bold mt-2 ml-1">{couponsError}</p>
+                  )}
                 </div>
 
-                <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
                   <button
                     onClick={runOptimization}
-                    disabled={isOptimizing}
+                    disabled={isOptimizing || budgetError !== null || couponsError !== null}
                     className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-6 py-4 rounded-2xl font-bold transition-all active:scale-[0.98] disabled:opacity-70 shadow-xl shadow-blue-500/20"
                   >
                     {isOptimizing ? (
@@ -491,6 +566,21 @@ export default function App() {
                       <Calculator className="w-5 h-5" />
                     )}
                     {isOptimizing ? 'Procesando IA...' : 'Generar Estimación'}
+                  </button>
+
+                  <button
+                    onClick={handleConnectMeta}
+                    disabled={isFetchingMeta}
+                    className={`w-full flex items-center justify-center gap-2 px-6 py-4 rounded-2xl font-bold transition-all active:scale-[0.98] border-2 ${isMetaConnected ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'bg-white dark:bg-slate-950 border-blue-600 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10'}`}
+                  >
+                    {isFetchingMeta ? (
+                      <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }}>
+                        <Activity className="w-5 h-5" />
+                      </motion.div>
+                    ) : (
+                      <MetaIcon className="w-5 h-5" />
+                    )}
+                    {isMetaConnected ? 'Meta Ads Conectado' : 'Conectar Datos Reales'}
                   </button>
                 </div>
               </div>
