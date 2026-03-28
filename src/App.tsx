@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Target, TrendingUp, Euro, Check, X, BarChart3, Calculator, 
   ArrowRight, Upload, User, Lock, Sun, Moon, Infinity as MetaIcon, 
-  LogOut, Activity, Zap
+  LogOut, Activity, Zap, ChevronDown
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts';
 import Papa from 'papaparse';
@@ -41,10 +41,22 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return localStorage.getItem('diego_meta_auth') === 'true';
   });
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState(() => {
+    return localStorage.getItem('diego_meta_username') || '';
+  });
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // --- Efecto para Modo Oscuro Global ---
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
 
   // --- Estados de la Aplicación ---
   const [campaigns, setCampaigns] = useState(INITIAL_CAMPAIGNS);
@@ -60,6 +72,7 @@ export default function App() {
     if (username === 'dgparga' && password === 'dgparga95') {
       setIsAuthenticated(true);
       localStorage.setItem('diego_meta_auth', 'true');
+      localStorage.setItem('diego_meta_username', username);
       setLoginError(false);
     } else {
       setLoginError(true);
@@ -69,8 +82,10 @@ export default function App() {
   const handleLogout = () => {
     setIsAuthenticated(false);
     localStorage.removeItem('diego_meta_auth');
+    localStorage.removeItem('diego_meta_username');
     setUsername('');
     setPassword('');
+    setIsMenuOpen(false);
   };
 
   // --- Handlers de Archivos ---
@@ -193,7 +208,7 @@ export default function App() {
   // --- PANTALLA DE LOGIN ---
   if (!isAuthenticated) {
     return (
-      <div className={isDarkMode ? 'dark' : ''}>
+      <>
         <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] dark:bg-[#0B1121] p-4 relative overflow-hidden transition-colors duration-500">
           {/* Elementos decorativos de fondo */}
           <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-blue-500/20 dark:bg-blue-500/10 blur-[120px] pointer-events-none" />
@@ -277,13 +292,13 @@ export default function App() {
             </form>
           </motion.div>
         </div>
-      </div>
+      </>
     );
   }
 
   // --- PANTALLA PRINCIPAL ---
   return (
-    <div className={isDarkMode ? 'dark' : ''}>
+    <>
       <div className="min-h-screen bg-[#f8fafc] dark:bg-[#0B1121] text-slate-800 dark:text-slate-100 font-sans selection:bg-blue-100 dark:selection:bg-blue-900/50 selection:text-blue-900 dark:selection:text-blue-100 pb-20 transition-colors duration-500 relative">
         
         {/* Background Gradients */}
@@ -307,7 +322,7 @@ export default function App() {
               </div>
             </div>
             
-            <div className="flex items-center gap-1 sm:gap-2">
+            <div className="flex items-center">
               <input 
                 type="file" 
                 accept=".csv" 
@@ -315,32 +330,68 @@ export default function App() {
                 onChange={handleFileUpload} 
                 className="hidden" 
               />
-              <button 
-                onClick={() => fileInputRef.current?.click()}
-                className="flex items-center justify-center w-10 h-10 sm:w-auto sm:h-auto sm:px-4 sm:py-2.5 gap-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl font-bold transition-all shadow-sm active:scale-95"
-                title="Importar CSV"
-              >
-                <Upload className="w-4 h-4 sm:w-4 sm:h-4" />
-                <span className="hidden sm:inline">Importar</span>
-              </button>
+              
+              <div className="relative">
+                <button 
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  className="flex items-center gap-2 sm:gap-3 p-1.5 sm:p-2 pr-3 sm:pr-4 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                >
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-inner">
+                    {username ? username.charAt(0).toUpperCase() : 'U'}
+                  </div>
+                  <span className="text-sm font-bold text-slate-700 dark:text-slate-200 hidden sm:block">
+                    {username || 'Usuario'}
+                  </span>
+                  <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
 
-              <div className="w-px h-6 sm:h-8 bg-slate-200 dark:bg-slate-700 mx-1"></div>
-
-              <button
-                onClick={() => setIsDarkMode(!isDarkMode)}
-                className="flex items-center justify-center w-10 h-10 sm:w-auto sm:h-auto sm:p-2.5 rounded-xl bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-colors shadow-sm"
-                title="Alternar tema"
-              >
-                {isDarkMode ? <Sun className="w-4 h-4 sm:w-5 sm:h-5" /> : <Moon className="w-4 h-4 sm:w-5 sm:h-5" />}
-              </button>
-
-              <button
-                onClick={handleLogout}
-                className="flex items-center justify-center w-10 h-10 sm:w-auto sm:h-auto sm:p-2.5 rounded-xl bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors shadow-sm"
-                title="Cerrar sesión"
-              >
-                <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
-              </button>
+                <AnimatePresence>
+                  {isMenuOpen && (
+                    <>
+                      <div 
+                        className="fixed inset-0 z-40" 
+                        onClick={() => setIsMenuOpen(false)}
+                      ></div>
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden z-50"
+                      >
+                        <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700 sm:hidden">
+                          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-0.5">Conectado como</p>
+                          <p className="text-sm font-bold text-slate-800 dark:text-white truncate">{username || 'Usuario'}</p>
+                        </div>
+                        <div className="p-2 space-y-1">
+                          <button 
+                            onClick={() => { fileInputRef.current?.click(); setIsMenuOpen(false); }}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                          >
+                            <Upload className="w-4 h-4 text-blue-500" />
+                            Importar CSV
+                          </button>
+                          <button 
+                            onClick={() => { setIsDarkMode(!isDarkMode); setIsMenuOpen(false); }}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                          >
+                            {isDarkMode ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-indigo-500" />}
+                            {isDarkMode ? 'Modo Claro' : 'Modo Oscuro'}
+                          </button>
+                          <div className="h-px bg-slate-100 dark:bg-slate-700 my-1"></div>
+                          <button 
+                            onClick={handleLogout}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                          >
+                            <LogOut className="w-4 h-4" />
+                            Cerrar Sesión
+                          </button>
+                        </div>
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
           </div>
         </header>
@@ -681,6 +732,6 @@ export default function App() {
 
         </main>
       </div>
-    </div>
+    </>
   );
 }
