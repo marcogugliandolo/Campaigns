@@ -21,6 +21,10 @@ interface BudgetRecommendation {
   recommendedBudget: number;
   projectedCoupons: number;
   status: 'pending' | 'approved' | 'rejected';
+  bidAdjustment?: string;
+  segmentationAdvice?: string;
+  probability?: number;
+  reasoning?: string;
 }
 
 // --- Componente Logo ---
@@ -288,7 +292,7 @@ export default function App() {
   if (!isAuthenticated) {
     return (
       <>
-        <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] dark:bg-[#0B1121] p-4 relative overflow-hidden transition-colors duration-75">
+        <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] dark:bg-[#0B1121] p-4 relative overflow-hidden">
           {/* Elementos decorativos de fondo */}
           <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-blue-500/20 dark:bg-blue-500/10 blur-[120px] pointer-events-none" />
           <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-purple-500/20 dark:bg-purple-500/10 blur-[120px] pointer-events-none" />
@@ -379,7 +383,7 @@ export default function App() {
   // --- PANTALLA PRINCIPAL ---
   return (
     <>
-      <div className="min-h-screen bg-[#f8fafc] dark:bg-[#0B1121] text-slate-800 dark:text-slate-100 font-sans selection:bg-blue-100 dark:selection:bg-blue-900/50 selection:text-blue-900 dark:selection:text-blue-100 pb-20 transition-colors duration-75 relative">
+      <div className="min-h-screen bg-[#f8fafc] dark:bg-[#0B1121] text-slate-800 dark:text-slate-100 font-sans selection:bg-blue-100 dark:selection:bg-blue-900/50 selection:text-blue-900 dark:selection:text-blue-100 pb-20 relative">
         
         {/* Background Gradients */}
         <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
@@ -389,7 +393,7 @@ export default function App() {
 
         {/* Header Flotante */}
         <header className="sticky top-0 sm:top-6 z-30 sm:mx-4 lg:mx-auto max-w-6xl">
-          <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border-b sm:border border-white/50 dark:border-slate-800/60 shadow-md sm:shadow-xl shadow-slate-200/40 dark:shadow-none sm:rounded-3xl px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between transition-colors duration-75">
+          <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border-b sm:border border-white/50 dark:border-slate-800/60 shadow-md sm:shadow-xl shadow-slate-200/40 dark:shadow-none sm:rounded-3xl px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
             <div className="flex items-center gap-3 sm:gap-4">
               <BrandLogo size="normal" />
               <div>

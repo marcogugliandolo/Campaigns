@@ -4,6 +4,9 @@ import path from "path";
 import axios from "axios";
 import cookieSession from "cookie-session";
 import "dotenv/config";
+import { GoogleGenAI, Type } from "@google/genai";
+
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
 async function startServer() {
   const app = express();
@@ -135,6 +138,91 @@ async function startServer() {
     } catch (error: any) {
       console.error("Meta API Error:", error.response?.data || error.message);
       res.status(500).json({ error: "Error al obtener datos de Meta" });
+    }
+  });
+
+  app.post("/api/meta/analyze", async (req, res) => {
+    const { campaigns, targetBudget, targetCoupons } = req.body;
+
+    // Mock CRM Data for analysis
+    const crmData = {
+      conversionRateByCampaign: campaigns.map((c: any) => ({
+        campaignId: c.id,
+        crmConversionRate: (Math.random() * 0.15 + 0.05).toFixed(4), // 5% to 20%
+        customerLifetimeValue: Math.floor(Math.random() * 500 + 100),
+      })),
+      topPerformingSegments: ["Hombres 25-34", "Intereses: Tecnología", "Madrid/Barcelona"],
+    };
+
+    try {
+      const prompt = `
+        Eres un experto en Meta Ads y CRM. Analiza los siguientes datos de campañas y CRM para generar sugerencias inteligentes.
+        
+        OBJETIVO DIARIO: ${targetCoupons} cupones con un presupuesto de ${targetBudget}€.
+        
+        CAMPAÑAS ACTUALES:
+        ${JSON.stringify(campaigns, null, 2)}
+        
+        DATOS CRM (Conversión real a venta):
+        ${JSON.stringify(crmData, null, 2)}
+        
+        Genera una lista de sugerencias para cada campaña. Cada sugerencia debe incluir:
+        1. Nuevo presupuesto recomendado (ajustado al total de ${targetBudget}€).
+        2. Ajuste de puja (ej: "Aumentar 10%", "Mantener", "Bajar 5%").
+        3. Consejo de segmentación basado en los datos.
+        4. Probabilidad de alcanzar el objetivo individual (0-1).
+        5. Razonamiento breve.
+        
+        Responde estrictamente en formato JSON siguiendo este esquema:
+        {
+          "suggestions": [
+            {
+              "campaignId": "string",
+              "recommendedBudget": number,
+              "projectedCoupons": number,
+              "bidAdjustment": "string",
+              "segmentationAdvice": "string",
+              "probability": number,
+              "reasoning": "string"
+            }
+          ]
+        }
+      `;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              suggestions: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    campaignId: { type: Type.STRING },
+                    recommendedBudget: { type: Type.NUMBER },
+                    projectedCoupons: { type: Type.NUMBER },
+                    bidAdjustment: { type: Type.STRING },
+                    segmentationAdvice: { type: Type.STRING },
+                    probability: { type: Type.NUMBER },
+                    reasoning: { type: Type.STRING }
+                  },
+                  required: ["campaignId", "recommendedBudget", "projectedCoupons", "bidAdjustment", "segmentationAdvice", "probability", "reasoning"]
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const result = JSON.parse(response.text);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Gemini Analysis Error:", error);
+      res.status(500).json({ error: "Error al analizar con IA" });
     }
   });
 
